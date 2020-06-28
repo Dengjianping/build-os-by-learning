@@ -9,6 +9,9 @@ target = "x86_64-protocol_os.json"
 
 [dependencies]
 bootloader = "0.9"
+lazy_static = { version = "1.4.0", default-features = false, features = ["spin_no_std"] }
+spin = "0.5"
+volatile = "0.2"
 
 [profile.dev]
 panic = "abort"
