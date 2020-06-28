@@ -1,0 +1,17 @@
+[package]
+name = "protocol-os"
+version = "0.1.0"
+authors = ["Dengjianping <djptux@gmail.com>"]
+edition = "2018"
+
+[build]
+target = "x86_64-protocol_os.json"
+
+[dependencies]
+bootloader = "0.9"
+
+[profile.dev]
+panic = "abort"
+
+[profile.release]
+panic = "abort"
