@@ -1,11 +1,33 @@
 #![no_std]
-#![no_main]
+#![cfg_attr(test, no_main)]
+#![reexport_test_harness_main = "test_main"]
+#![feature(custom_test_frameworks)]
+#![test_runner(crate::test_runner)]
 
 use core::panic::PanicInfo;
+// use x86_64::structures::idt::InterruptDescriptorTable;
 
 static HELLO: &[u8] = b"Hello World!";
 
 mod vga_buffer;
+pub mod interrupts;
+mod serial;
+
+#[derive(Clone, Debug, Copy, PartialEq, Eq)]
+#[repr(u32)]
+pub enum QemuExitCode {
+    Success = 0,
+    Failed = 0x11,
+}
+
+pub fn exit_qemu(exit_code: QemuExitCode) {
+    use x86_64::instructions::port::Port;
+
+    unsafe {
+        let mut port = Port::new(0xf4);
+        port.write(exit_code as u32);
+    }
+}
 
 #[no_mangle]
 pub extern "C" fn _start() -> ! {
@@ -14,7 +36,10 @@ pub extern "C" fn _start() -> ! {
     // write!(vga_buffer::WRITER.lock(), ", some numbers: {} {}", 42, 1.337).unwrap();
 
     println!("Hello World{}", "!");
-    panic!("Some panic message");
+
+    #[cfg(test)]
+    test_main();
+
     loop {}
 }
 
@@ -22,4 +47,21 @@ pub extern "C" fn _start() -> ! {
 fn panic(info: &PanicInfo) -> ! {
     println!("{}", info);
     loop {}
+}
+
+#[cfg(test)]
+fn test_runner(tests: &[&dyn Fn()]) {
+    serial_println!("Running {} tests", tests.len());
+    for test in tests {
+        test();
+    }
+
+    exit_qemu(QemuExitCode::Success);
+}
+
+#[test_case]
+fn trivial_assertion() {
+    serial_print!("trivial assertion...");
+    assert_eq!(1, 1);
+    serial_println!("[ok]");
 }
